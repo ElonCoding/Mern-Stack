@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -19,10 +19,18 @@ function ProtectedRoute({ children }) {
 
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingSpinner text="Checking permissions..." />;
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "ADMIN" && user.role !== "ORGANIZER") return <Navigate to="/" />;
-  return children;
+  if (user.role === "ADMIN") return children;
+  if (user.role === "ORGANIZER") {
+    const path = location.pathname.toLowerCase();
+    const isAllowed =
+      path === "/admin" ||
+      path.startsWith("/admin/slots");
+    return isAllowed ? children : <Navigate to="/admin" />;
+  }
+  return <Navigate to="/" />;
 }
 
 export default function App() {

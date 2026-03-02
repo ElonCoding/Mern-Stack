@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 export default function Login() {
   const { login } = useAuth();
@@ -63,6 +64,56 @@ export default function Login() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+        <div className="mt-3 d-grid gap-2">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={async () => {
+              const demo = { name: "Demo User", email: "demo.user@darshanease.local", password: "Demo1234!" };
+              setLoading(true);
+              try {
+                try {
+                  await login(demo.email, demo.password);
+                } catch {
+                  await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, { ...demo, role: "USER" });
+                  await login(demo.email, demo.password);
+                }
+                toast.success("Logged in as Demo User");
+                navigate("/");
+              } catch (err) {
+                toast.error(err.response?.data?.message || "Demo login failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            id="login-demo-user"
+          >
+            Login as Demo User
+          </button>
+          <button
+            className="btn btn-outline-dark"
+            onClick={async () => {
+              const demo = { name: "Demo Admin", email: "demo.admin@darshanease.local", password: "AdminDemo123!" };
+              setLoading(true);
+              try {
+                try {
+                  await login(demo.email, demo.password);
+                } catch {
+                  await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, { ...demo, role: "ADMIN" });
+                  await login(demo.email, demo.password);
+                }
+                toast.success("Logged in as Demo Admin");
+                navigate("/admin");
+              } catch (err) {
+                toast.error(err.response?.data?.message || "Demo admin login failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            id="login-demo-admin"
+          >
+            Login as Demo Admin
+          </button>
+        </div>
         <div className="auth-footer">
           Don't have an account? <Link to="/register">Create one</Link>
         </div>
