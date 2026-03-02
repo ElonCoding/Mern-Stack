@@ -1,4 +1,4 @@
-import { app, request, initTestDB, closeTestDB } from "./setup.js";
+import { app, request, initTestDB, closeTestDB, createTestUser } from "./setup.js";
 
 let adminToken;
 let userToken;
@@ -6,19 +6,9 @@ let templeId;
 
 beforeAll(async () => {
   await initTestDB();
-  const adminReg = await request(app).post("/api/auth/register").send({
-    name: "Admin",
-    email: "admin2@example.com",
-    password: "AdminPass123",
-    role: "ADMIN"
-  });
-  adminToken = adminReg.body.token;
-  const userReg = await request(app).post("/api/auth/register").send({
-    name: "User",
-    email: "user2@example.com",
-    password: "UserPass123"
-  });
-  userToken = userReg.body.token;
+  adminToken = await createTestUser({ name: "Admin", email: "admin2@example.com", password: "AdminPass123", role: "ADMIN" });
+  userToken = await createTestUser({ name: "User", email: "user2@example.com", password: "UserPass123" });
+
   const tRes = await request(app)
     .post("/api/temples")
     .set("Authorization", `Bearer ${adminToken}`)
@@ -30,16 +20,45 @@ afterAll(async () => {
   await closeTestDB();
 });
 
-test("user donates and admin lists all donations", async () => {
-  const dRes = await request(app)
-    .post("/api/donations")
-    .set("Authorization", `Bearer ${userToken}`)
-    .send({ templeId, amount: 500 });
-  expect(dRes.status).toBe(201);
-  const my = await request(app).get("/api/donations/me").set("Authorization", `Bearer ${userToken}`);
-  expect(my.status).toBe(200);
-  expect(my.body.length).toBe(1);
-  const all = await request(app).get("/api/donations").set("Authorization", `Bearer ${adminToken}`);
-  expect(all.status).toBe(200);
-  expect(all.body.length).toBe(1);
+describe("Donation flow", () => {
+  test("user makes a donation", async () => {
+    const res = await request(app)
+      .post("/api/donations")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ templeId, amount: 500, message: "Blessings" });
+    expect(res.status).toBe(201);
+    expect(res.body.amount).toBe(500);
+  });
+
+  test("user lists their donations", async () => {
+    const res = await request(app)
+      .get("/api/donations/me")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(1);
+  });
+
+  test("admin lists all donations", async () => {
+    const res = await request(app)
+      .get("/api/donations")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(1);
+  });
+
+  test("admin gets donation stats", async () => {
+    const res = await request(app)
+      .get("/api/donations/stats")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.totalAmount).toBe(500);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  test("user cannot access admin donation routes", async () => {
+    const res = await request(app)
+      .get("/api/donations")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.status).toBe(403);
+  });
 });

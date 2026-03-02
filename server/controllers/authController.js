@@ -1,4 +1,4 @@
-import { register, login } from "../services/authService.js";
+import { register, login, getProfile } from "../services/authService.js";
 
 export async function registerController(req, res, next) {
   try {
@@ -18,6 +18,11 @@ export async function loginController(req, res, next) {
   }
 }
 
-export async function meController(req, res) {
-  res.json({ user: req.user });
+export async function meController(req, res, next) {
+  try {
+    const user = await getProfile(req.user._id);
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
 }

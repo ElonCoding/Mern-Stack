@@ -3,9 +3,10 @@ import { createBooking, listUserBookings, cancelBooking, listAllBookings } from 
 export async function create(req, res, next) {
   try {
     const booking = await createBooking({
-      userId: req.user.id,
+      userId: req.user._id,
       templeId: req.body.templeId,
-      slotId: req.body.slotId
+      slotId: req.body.slotId,
+      numberOfPersons: req.body.numberOfPersons || 1
     });
     res.status(201).json(booking);
   } catch (err) {
@@ -15,7 +16,7 @@ export async function create(req, res, next) {
 
 export async function myBookings(req, res, next) {
   try {
-    const items = await listUserBookings(req.user.id);
+    const items = await listUserBookings(req.user._id);
     res.json(items);
   } catch (err) {
     next(err);
@@ -24,7 +25,7 @@ export async function myBookings(req, res, next) {
 
 export async function cancel(req, res, next) {
   try {
-    const b = await cancelBooking(req.params.id, req.user.id);
+    const b = await cancelBooking(req.params.id, req.user._id);
     res.json(b);
   } catch (err) {
     next(err);
