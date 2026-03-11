@@ -1,10 +1,7 @@
 import DarshanSlot from "../models/DarshanSlot.js";
 
-export function listSlotsByTemple(templeId, query = {}) {
-  const q = { temple: templeId };
-  if (query.date) q.date = query.date;
-  if (query.status) q.status = query.status;
-  return DarshanSlot.find(q).sort({ date: 1, startTime: 1 });
+export function listSlotsByTemple(templeId) {
+  return DarshanSlot.find({ temple: templeId }).sort({ date: 1, startTime: 1 });
 }
 
 export function createSlot(data) {
@@ -13,12 +10,7 @@ export function createSlot(data) {
 }
 
 export function updateSlot(id, data) {
-  const allowed = ["date", "startTime", "endTime", "capacity", "availableSeats", "price", "status"];
-  const update = {};
-  for (const key of allowed) {
-    if (data[key] !== undefined) update[key] = data[key];
-  }
-  return DarshanSlot.findByIdAndUpdate(id, update, { new: true, runValidators: true });
+  return DarshanSlot.findByIdAndUpdate(id, data, { new: true });
 }
 
 export function deleteSlot(id) {
@@ -39,8 +31,6 @@ export async function adjustAvailability(slotId, delta) {
     throw err;
   }
   slot.availableSeats = next;
-  if (next === 0) slot.status = "FULL";
-  else if (slot.status === "FULL") slot.status = "OPEN";
   await slot.save();
   return slot;
 }

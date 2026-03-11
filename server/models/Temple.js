@@ -2,29 +2,13 @@ import mongoose from "mongoose";
 
 const templeSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Temple name is required"],
-      trim: true,
-      maxlength: 100
-    },
-    location: {
-      type: String,
-      required: [true, "Location is required"],
-      trim: true,
-      maxlength: 200
-    },
-    description: { type: String, default: "", maxlength: 2000 },
-    deity: { type: String, default: "", trim: true },
-    imageUrl: { type: String, default: "" },
-    timings: { type: String, default: "" },
-    contactInfo: { type: String, default: "" },
-    isActive: { type: Boolean, default: true },
+    name: { type: String, required: true, trim: true },
+    location: { type: String, required: true, trim: true },
+    description: { type: String, default: "" },
+    deity: { type: String, default: "" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
   },
   { timestamps: true }
 );
-
-templeSchema.index({ name: "text", location: "text", deity: "text" });
 
 export default mongoose.model("Temple", templeSchema);

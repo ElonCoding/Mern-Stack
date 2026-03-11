@@ -1,46 +1,37 @@
 import Booking from "../models/Booking.js";
 import DarshanSlot from "../models/DarshanSlot.js";
 
-export async function createBooking({ userId, templeId, slotId, numberOfPersons = 1 }) {
+export async function createBooking({ userId, templeId, slotId }) {
   const slot = await DarshanSlot.findById(slotId);
-  if (!slot || slot.status === "CLOSED") {
+  if (!slot || slot.status !== "OPEN") {
     const err = new Error("Slot not available");
     err.status = 400;
     throw err;
   }
-  if (slot.availableSeats < numberOfPersons) {
-    const err = new Error(`Only ${slot.availableSeats} seat(s) available`);
+  if (slot.availableSeats <= 0) {
+    const err = new Error("No seats available");
     err.status = 400;
     throw err;
   }
-
-  const existing = await Booking.findOne({ user: userId, slot: slotId, status: "CONFIRMED" });
+  const existing = await Booking.findOne({ user: userId, slot: slotId });
   if (existing) {
-    const err = new Error("You have already booked this slot");
+    const err = new Error("Already booked");
     err.status = 400;
     throw err;
   }
-
   const booking = await Booking.create({
     user: userId,
     temple: templeId,
     slot: slotId,
-    numberOfPersons,
     status: "CONFIRMED"
   });
-
-  slot.availableSeats -= numberOfPersons;
-  if (slot.availableSeats === 0) slot.status = "FULL";
+  slot.availableSeats -= 1;
   await slot.save();
-
   return booking;
 }
 
 export function listUserBookings(userId) {
-  return Booking.find({ user: userId })
-    .populate("temple", "name location imageUrl")
-    .populate("slot", "date startTime endTime price")
-    .sort({ createdAt: -1 });
+  return Booking.find({ user: userId }).populate("temple slot").sort({ createdAt: -1 });
 }
 
 export async function cancelBooking(bookingId, userId) {
@@ -51,23 +42,16 @@ export async function cancelBooking(bookingId, userId) {
     throw err;
   }
   if (booking.status === "CANCELLED") return booking;
-
   booking.status = "CANCELLED";
   await booking.save();
-
   const slot = await DarshanSlot.findById(booking.slot);
-  if (slot) {
-    slot.availableSeats = Math.min(slot.capacity, slot.availableSeats + booking.numberOfPersons);
-    if (slot.status === "FULL") slot.status = "OPEN";
+  if (slot && slot.availableSeats < slot.capacity) {
+    slot.availableSeats += 1;
     await slot.save();
   }
   return booking;
 }
 
 export function listAllBookings() {
-  return Booking.find()
-    .populate("user", "name email")
-    .populate("temple", "name location")
-    .populate("slot", "date startTime endTime")
-    .sort({ createdAt: -1 });
+  return Booking.find().populate("user temple slot").sort({ createdAt: -1 });
 }
